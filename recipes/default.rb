@@ -5,10 +5,10 @@
 
 # load the dbag if its there
 begin 
-  fs_dbag = data_bag_item(node[:filesystem_bag], data_bag_fqdn )
+  fs_dbag = data_bag_item(node[:filesystems_bag], data_bag_fqdn )
 rescue
   fs_dbag = nil
-  Chef::Log.info "No fs data bag found for '#{node[:filesystem_bag]}:#{data_bag_fqdn}`"
+  Chef::Log.info "No fs data bag found for '#{node[:filesystems_bag]}:#{data_bag_fqdn}`"
 end
 
 # if no dbag and no attribs don't continue
