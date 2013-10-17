@@ -1,3 +1,4 @@
+name             "filesystem"
 maintainer       "Jesse Nelson"
 maintainer_email "spheromak@gmail.com"
 description      "Installs/Configures various filesystems"
