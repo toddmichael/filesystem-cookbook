@@ -1,40 +1,33 @@
 require 'pathname'
+require 'chef/mixin/shell_out'
 
-# filesystem helpers
-def lv_create(vg=nil, size=nil, lv=nil)
-  execute "lvcreate -L#{size} -n #{lv}  #{vg} " do 
-    not_if "test -b /dev/#{vg}/#{lv}"
+module FilesystemMod
+  include Chef::Mixin::ShellOut
+
+  MOUNT_EX_FAIL = 32 unless const_defined?(:MOUNT_EX_FAIL)
+  NET_FS_TYPES = %w(nfs cifs smp nbd).freeze unless const_defined?(:NET_FS_TYPES)
+
+  # Check to determine if the device is mounted.
+  def mounted?(device)
+    mounted = shell_out("grep -q '#{device}' /proc/mounts").exitstatus != 0 ? nil : shell_out("grep -q '#{device}' /proc/mounts").exitstatus
+    mounted
   end
-end
 
-# is this damn thing already mounted ?
-def is_mounted?(device)
-  check_mount = Chef::ShellOut.new("mount | grep -q '#{device}'")
-  check_mount.run_command
-  return true if 0 == check_mount.status
-  
-  # might as well follow the link like mount does
-  # recursion is fun
-  return is_mounted?(Pathname.new(device).realpath.to_s) if File.symlink?(device)
-  
-  false
-end
+  # Check to determine if the mount is frozen.
+  def filesystem_frozen?(mount_loc)
+    fields = File.readlines('/proc/mounts').map(&:split).detect { |field| field[1] == mount_loc }
+    raise "#{mount_loc} not mounted" unless fields
+    remount = shell_out('mount', '-o', "remount,#{fields[3]}", mount_loc)
+    if remount.exitstatus == MOUNT_EX_FAIL
+      true
+    else
+      remount.error!
+      false
+    end
+  end
 
-
-def mkfs(device=nil, label=nil, opts=nil, type="xfs" ) 
-  return if is_mounted?(device)
-  mkfs_cmd = "mkfs.#{type} #{opts} -L #{label} #{device}"
-  case type 
-  when "xfs"
-    has_fs_cmd = "xfs_admin -l #{device}  | grep 'label'| grep -q #{label}"
-  when "ocfs2"
-    has_fs_cmd = "tunefs.ocfs2 -q -Q'%V' #{device} | grep -q '#{label}' "
-  when "nfs"
-    # we never make an nfs fs
-    has_fs_cmd = "true"
-  end 
-  
-  execute mkfs_cmd do
-     not_if has_fs_cmd
-  end unless is_mounted?(device)
+  # Check if provided filesystem type is netfs
+  def netfs?(fstype)
+    NET_FS_TYPES.include? fstype
+  end
 end

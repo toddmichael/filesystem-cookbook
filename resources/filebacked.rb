@@ -1,6 +1,6 @@
 #
 # Cookbook:: filesystem
-# Recipe:: default
+# Resource:: filebacked
 #
 # Copyright:: 2013-2017, Alex Trull
 #
@@ -16,18 +16,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-case node['platform_family']
-when 'debian'
-  package %w(xfsprogs xfsdump xfslibs-dev)
-when 'rhel', 'fedora'
-  package %w(xfsprogs)
-end
 
-# We want to support LVM
-include_recipe 'lvm'
+# We default to creating the file backed loopback.
+actions :create
+default_action :create
 
-# If we have contents at the default location, we try to make the filesystems with the LWRP.
-filesystem_create_all_from_key 'filesystems' do
-  action :create
-  not_if { node['filesystems'].nil? || node['filesystems'].empty? }
-end
+# The name attribute is the file to be created.
+attribute :name, kind_of: String, name_attribute: true
+
+attribute :device, kind_of: String
+attribute :size, kind_of: String
+attribute :sparse, kind_of: [TrueClass, FalseClass], default: true

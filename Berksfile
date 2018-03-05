@@ -1,7 +1,7 @@
-# -*- mode: ruby -*-
-# vi: set ft=ruby :
-#
-site :opscode
+source 'https://supermarket.chef.io'
 
 metadata
-cookbook "databag-helper", git: 'git@github.com:spheromak/databag-helper-cookbook.git'
+
+group :integration do
+  cookbook 'test', path: './test/cookbooks/test'
+end
